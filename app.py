@@ -138,35 +138,39 @@ if not df_year.empty:
         else:
             st.warning("Select countries in the sidebar to visualize trends.")
 
-    # TAB 3: SCATTER PLOT (FINANCE FOCUS)
+   # TAB 3: SCATTER PLOT (FINANCE FOCUS)
     with tab3:
         st.subheader("Economic Growth vs. Environmental Impact")
         st.markdown("""
         *Does being richer mean polluting more?* This chart correlates **GDP per Capita** (Wealth) with **CO₂ Emissions**.
+        The size of each bubble represents the country's population.
         """)
         
-        # Creiamo il GDP pro capite al volo
+        # Creiamo il GDP pro capite al volo e puliamo i dati
         df_year_fin = df_year.copy()
         df_year_fin['gdp_per_capita'] = df_year_fin['gdp'] / df_year_fin['population']
-        df_year_fin = df_year_fin.dropna(subset=['gdp_per_capita', 'co2_per_capita'])
+        df_year_fin = df_year_fin.dropna(subset=['gdp_per_capita', 'co2_per_capita', 'population'])
 
         if not df_year_fin.empty:
+            # --- MODIFICA QUI: Aumentiamo la dimensione delle bolle ---
             fig_scatter = px.scatter(
                 df_year_fin,
                 x="gdp_per_capita",
                 y="co2_per_capita",
-                size="population",      # La bolla è grande quanto la popolazione
-                color="country",        # Ogni paese un colore (o continent se avessimo la colonna)
+                size="population",      
+                color="country",        
                 hover_name="country",
-                log_x=True,             # Scala logaritmica essenziale per il PIL
+                log_x=True,             
                 title=f"<b>Correlation: GDP per Capita vs CO₂ ({selected_year})</b>",
-                labels={'gdp_per_capita': 'GDP per Capita ($)', 'co2_per_capita': 'CO₂ per Capita (t)'}
+                labels={'gdp_per_capita': 'GDP per Capita ($)', 'co2_per_capita': 'CO₂ per Capita (t)'},
+                size_max=60  # <-- AUMENTATO: Dimensione massima della bolla più grande (default era ~20)
             )
+            
+            # --- AGGIUNTA: Impostiamo una dimensione minima per i paesi piccoli ---
+            fig_scatter.update_traces(marker=dict(sizemin=5)) # <-- I paesi piccoli ora avranno almeno 5px di diametro
+
             fig_scatter.update_layout(height=600, showlegend=False)
             st.plotly_chart(fig_scatter, use_container_width=True)
             st.caption("Note: X-axis is logarithmic. Bubble size represents population.")
         else:
             st.warning(f"Not enough economic data available for the year {selected_year}.")
-
-else:
-    st.error("No data available. Please adjust filters.")
