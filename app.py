@@ -16,14 +16,12 @@ def load_data():
     url = "https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv"
     df = pd.read_csv(url)
     
-    # Selezioniamo colonne utili inclusi PIL (gdp) e popolazione
+    # Selezioniamo colonne utili
     keep_cols = ['country', 'year', 'iso_code', 'population', 'gdp', 'co2_per_capita', 'co2']
     df = df[keep_cols]
     
-    # Pulizia: Rimuoviamo righe che non sono paesi
+    # Pulizia
     df = df[df['iso_code'].notna()]
-    
-    # Rimuoviamo righe con CO2 nullo per evitare errori grafici
     df = df.dropna(subset=['co2_per_capita'])
     
     return df
@@ -36,7 +34,7 @@ with st.sidebar:
     
     # Filtro Anno
     st.subheader("1. Time Dimension")
-    min_year = 1950 # Partiamo dal 1950 per avere dati GDP più solidi
+    min_year = 1950
     max_year = int(df['year'].max())
     
     selected_year = st.slider(
@@ -48,11 +46,11 @@ with st.sidebar:
     
     st.markdown("---")
 
-    # Filtro Paesi per il grafico Trend
+    # Filtro Paesi
     st.subheader("2. Comparative Analysis")
     all_countries = sorted(df['country'].unique())
     default_countries = ["United States", "China", "United Kingdom", "Italy", "India"]
-    # Controlliamo che i default esistano nel dataset filtrato
+    # Verifica che i default esistano
     valid_defaults = [c for c in default_countries if c in all_countries]
     
     selected_countries = st.multiselect(
@@ -63,10 +61,10 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Informazioni Studente e Fonte
+    # Informazioni
     st.info("ℹ️ **About**")
     st.markdown("""
-    **Data Source:** [Our World in Data: CO₂ and Greenhouse Gas Emissions](https://ourworldindata.org/co2-and-greenhouse-gas-emissions)
+    **Data Source:** [Our World in Data](https://ourworldindata.org/co2-and-greenhouse-gas-emissions)
     
     **Student Project:** Eleonora Castellani  
     *USI Master in Finance (Minor in Digital)*
@@ -76,16 +74,13 @@ with st.sidebar:
 st.title("Global CO2 emissions and analysis")
 st.markdown(f"### Analysis for year **{selected_year}**")
 
-# Filtro dati anno
 df_year = df[df['year'] == selected_year]
 
 if not df_year.empty:
     
-    # KPI (Top metrics)
+    # KPI
     col1, col2, col3, col4 = st.columns(4)
     global_avg = df_year['co2_per_capita'].mean()
-    
-    # Gestione caso dati mancanti per KPI
     max_emitter = df_year.loc[df_year['co2_per_capita'].idxmax()] if not df_year.empty else None
     
     with col1:
@@ -100,7 +95,7 @@ if not df_year.empty:
 
     st.markdown("---")
 
-    # --- TAB SYSTEM (Per organizzare le visualizzazioni) ---
+    # --- TAB SYSTEM ---
     tab1, tab2, tab3 = st.tabs(["🗺️ Global Map", "📈 Historical Trends", "💰 GDP vs CO₂ (Finance Insight)"])
 
     # TAB 1: MAPPA
@@ -119,106 +114,60 @@ if not df_year.empty:
         fig_map.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
         st.plotly_chart(fig_map, use_container_width=True)
 
-   # --- TAB SYSTEM ---
-    tab1, tab2, tab3 = st.tabs(["🗺️ Global Map", "📈 Trend Analysis (Deep Dive)", "💰 Motion Chart (GDP vs CO₂)"])
-
-    # TAB 1: MAPPA (Resta uguale, è perfetta)
-    with tab1:
-        fig_map = px.choropleth(
-            df_year,
-            locations="iso_code",
-            color="co2_per_capita",
-            hover_name="country",
-            hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
-            color_continuous_scale="RdYlBu_r",
-            range_color=(0, 20),
-            title=f"<b>Global CO₂ Intensity ({selected_year})</b>",
-        )
-        fig_map.update_geos(showframe=False, projection_type="natural earth", showocean=True, oceancolor="#f0f8ff")
-        fig_map.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
-        st.plotly_chart(fig_map, use_container_width=True)
-
-    # TAB 2: LINE CHART CON OPZIONE FINANCE (CARBON INTENSITY)
+    # TAB 2: LINE CHART
     with tab2:
-        st.subheader("Historical Evolution & Efficiency")
-        
-        # --- NOVITÀ: Radio button per scegliere la metrica ---
-        metric_choice = st.radio(
-            "Select Metric to Analyze:",
-            ["Emission per Capita (Impact)", "Carbon Intensity (Efficiency)"],
-            horizontal=True,
-            help="Per Capita = How much people pollute. Intensity = How dirty the production of wealth is (CO2 / GDP)."
-        )
-        
-        df_trend = df[df['country'].isin(selected_countries)].copy()
+        st.subheader("Historical Evolution")
+        df_trend = df[df['country'].isin(selected_countries)]
         
         if not df_trend.empty:
-            if metric_choice == "Emission per Capita (Impact)":
-                y_val = "co2_per_capita"
-                title_txt = "Emission Trajectories (Tonnes per Person)"
-                y_label = "CO₂ (t/person)"
-            else:
-                # Calcolo Carbon Intensity: CO2 (kg) per Dollaro di PIL
-                # Moltiplichiamo per 1000 per avere grammi/chili leggibili se i dati sono in tonnellate
-                df_trend['carbon_intensity'] = df_trend['co2'] / df_trend['gdp']
-                y_val = "carbon_intensity"
-                title_txt = "Economic Efficiency: CO₂ emitted per $ of GDP"
-                y_label = "CO₂ Intensity (kg/$)"
-
             fig_line = px.line(
                 df_trend,
                 x="year",
-                y=y_val,
+                y="co2_per_capita",
                 color="country",
-                title=f"<b>{title_txt}</b>",
+                title="<b>Emission Trajectories (1950-2022)</b>",
                 markers=False
             )
             fig_line.add_vline(x=selected_year, line_dash="dash", line_color="red", opacity=0.5)
-            # Scala logaritmica opzionale se le differenze sono enormi
-            # fig_line.update_yaxes(type="log") 
             st.plotly_chart(fig_line, use_container_width=True)
-            
-            if metric_choice == "Carbon Intensity (Efficiency)":
-                st.info("💡 **Finance Note:** A downward trend in Carbon Intensity means the country is becoming more efficient at generating wealth with less pollution (Decoupling).")
         else:
             st.warning("Select countries in the sidebar to visualize trends.")
 
-    # TAB 3: ANIMATED SCATTER PLOT (IL WOW FACTOR)
+    # TAB 3: SCATTER PLOT (VERSIONE STABILE CORRETTA)
     with tab3:
-        st.subheader("The Evolution of Wealth and Pollution (1950-2022)")
-        st.markdown("Press **Play ▶️** below to watch how the world has changed over the last 70 years.")
+        st.subheader("Economic Growth vs. Environmental Impact")
+        st.markdown("""
+        *Does being richer mean polluting more?* This chart correlates **GDP per Capita** (Wealth) with **CO₂ Emissions**.
+        The size of each bubble represents the country's population.
+        """)
         
-        # Prepariamo i dati per l'animazione (tutti gli anni, non solo quello selezionato)
-        # Filtriamo per ridurre il carico (anni > 1950 e rimuoviamo dati nulli)
-        df_anim = df[(df['year'] >= 1950) & (df['year'] <= 2022)].copy()
-        df_anim['gdp_per_capita'] = df_anim['gdp'] / df_anim['population']
-        df_anim = df_anim.dropna(subset=['gdp_per_capita', 'co2_per_capita', 'population', 'country'])
-        
-        # Ordiniamo per anno per garantire l'animazione fluida
-        df_anim = df_anim.sort_values("year")
+        # Calcolo GDP e pulizia
+        df_year_fin = df_year.copy()
+        df_year_fin['gdp_per_capita'] = df_year_fin['gdp'] / df_year_fin['population']
+        df_year_fin = df_year_fin.dropna(subset=['gdp_per_capita', 'co2_per_capita', 'population'])
 
-        if not df_anim.empty:
-            fig_anim = px.scatter(
-                df_anim,
+        if not df_year_fin.empty:
+            fig_scatter = px.scatter(
+                df_year_fin,
                 x="gdp_per_capita",
                 y="co2_per_capita",
-                animation_frame="year", # <--- QUESTA È LA MAGIA
-                animation_group="country",
-                size="population",
-                color="country", # O 'continent' se lo avessimo
+                size="population",      
+                color="country",        
                 hover_name="country",
-                log_x=True,
-                size_max=60,
-                range_x=[df_anim['gdp_per_capita'].min(), df_anim['gdp_per_capita'].max()], # Assi fissi
-                range_y=[0, 30], # Assi fissi per evitare saltelli
-                title="<b>Motion Chart: GDP vs CO₂ Evolution</b>",
-                labels={'gdp_per_capita': 'GDP per Capita ($)', 'co2_per_capita': 'CO₂ per Capita (t)'}
+                log_x=True,             
+                title=f"<b>Correlation: GDP per Capita vs CO₂ ({selected_year})</b>",
+                labels={'gdp_per_capita': 'GDP per Capita ($)', 'co2_per_capita': 'CO₂ per Capita (t)'},
+                size_max=60  # Dimensione massima corretta
             )
             
-            fig_anim.update_traces(marker=dict(sizemin=4))
-            fig_anim.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 100 # Velocità animazione
-            fig_anim.update_layout(height=650, showlegend=False)
-            
-            st.plotly_chart(fig_anim, use_container_width=True)
+            # Impostiamo dimensione minima per non perdere i paesi piccoli
+            fig_scatter.update_traces(marker=dict(sizemin=5))
+
+            fig_scatter.update_layout(height=600, showlegend=False)
+            st.plotly_chart(fig_scatter, use_container_width=True)
+            st.caption("Note: X-axis is logarithmic. Bubble size represents population.")
         else:
-            st.warning("Data loading for animation...")
+            st.warning(f"Not enough economic data available for the year {selected_year}.")
+
+else:
+    st.error("No data available. Please adjust filters.")
