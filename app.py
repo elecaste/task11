@@ -34,7 +34,6 @@ def load_data():
     return df
 
 df = load_data()
-
 max_year_available = int(df['year'].max())
 
 # --- 3. SIDEBAR ---
@@ -151,16 +150,16 @@ if not df_year.empty:
         fig_map.update_layout(height=550, margin={"r":0,"t":0,"l":0,"b":0})
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
-        
-        # --- LISTA TOP 5 PRO CAPITE (AGGIUNTA QUI SOTTO) ---
-        st.markdown("##### 🏆 Top 5 Ranking (Per Capita)")
+
+        # --- LISTA TOP 5 SOTTO LA MAPPA (NUOVO!) ---
+        st.markdown("#### 🏆 Top 5 Countries (Per Capita Intensity)")
         top5_pc = df_year.sort_values(by="co2_per_capita", ascending=False).head(5)[['country', 'co2_per_capita']].copy()
         top5_pc.columns = ['Country', 'Tons per Person']
         top5_pc.reset_index(drop=True, inplace=True)
         top5_pc.index += 1
         st.dataframe(top5_pc, use_container_width=True)
-
-        # --- INSIGHTS ---
+        
+        # --- INSIGHTS DETTAGLIATI (RIPRISTINATI CORRETTAMENTE) ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -174,18 +173,21 @@ if not df_year.empty:
                 "icon": "⚡", "title": "The LNG Superpower",
                 "text": """
                 **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C is incredibly energy-intensive.
+                
                 **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates (AC and desalination)."""
             },
             "United Arab Emirates": {
                 "icon": "🏗️", "title": "Construction & Water",
                 "text": """
                 **Specific Driver:** Emissions driven by rapid **urban construction** (Dubai) and aluminum smelting.
+                
                 **Water Stress:** Relies almost entirely on **desalination plants**, which are extremely carbon-heavy."""
             },
             "Kuwait": {
                 "icon": "🛢️", "title": "Oil-Fired Power",
                 "text": """
                 **Specific Driver:** Kuwait burns significant amounts of **heavy crude oil** directly to generate electricity.
+                
                 **Climate Control:** Extreme summer heat drives massive cooling demand per square meter."""
             },
             "Bahrain": {
@@ -197,6 +199,7 @@ if not df_year.empty:
                 "icon": "🚗", "title": "Suburban Sprawl",
                 "text": """
                 **Specific Driver:** Car-centric infrastructure and low fuel taxes.
+                
                 **Lifestyle:** Large suburban homes with high heating/cooling needs lead to high individual consumption."""
             }
         }
@@ -206,7 +209,10 @@ if not df_year.empty:
             final_icon, final_title, final_text = insight["icon"], insight["title"], insight["text"]
         else:
             final_icon, final_title = "📊", "High Industrial Output / Small Population"
-            final_text = f"**The Reason:** {tp_name} combines significant industrial activity with a relatively small population base ({tp_pop:,.0f} people)."
+            final_text = f"""
+            **The Reason:** {tp_name} combines significant industrial activity with a relatively small population base ({tp_pop:,.0f} people).
+            
+            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking."""
 
         with st.expander(f"📖 Read Analysis for {tp_name}", expanded=True):
             c1, c2 = st.columns([2, 1])
@@ -217,7 +223,7 @@ if not df_year.empty:
                 st.markdown("#### 🧮 The Evidence (Math)")
                 st.markdown(f"How we get **{tp_val:.1f} tons**:")
                 st.markdown(f"$$\\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}$$")
-                st.markdown("*Small population amplifies the result.*")
+                st.markdown("*A small population (Denominator) amplifies the result.*")
 
     # ==========================
     # TAB 2: MAPPA ASSOLUTA
@@ -247,18 +253,14 @@ if not df_year.empty:
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
         st.plotly_chart(fig_abs, use_container_width=True)
 
-        # --- LISTA TOP 5 ASSOLUTA (AGGIUNTA QUI SOTTO) ---
-        st.markdown("##### 🏆 Top 5 Ranking (Total Volume)")
+        # --- LISTA TOP 5 SOTTO LA MAPPA (NUOVO!) ---
+        st.markdown("#### 🏆 Top 5 Countries (Total Volume)")
         top5_abs = df_year.sort_values(by="co2", ascending=False).head(5)[['country', 'co2']].copy()
-        
-        # Formattiamo i numeri grandi
         top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} Billion" if x > 1e9 else f"{x/1e6:.0f} Million")
-        
         top5_abs.columns = ['Country', 'Total Tonnes']
         top5_abs.reset_index(drop=True, inplace=True)
         top5_abs.index += 1
         st.dataframe(top5_abs, use_container_width=True)
-
 
     # ==========================
     # TAB 3: LINE CHART
