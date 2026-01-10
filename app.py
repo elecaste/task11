@@ -21,7 +21,7 @@ def load_data():
     
     df = df[df['iso_code'].notna()]
     
-    # FIX GDP 2023/24
+    # FIX GDP 2023/24 e dati mancanti
     df = df.sort_values(['country', 'year'])
     df['gdp'] = df.groupby('country')['gdp'].ffill()
     df['population'] = df.groupby('country')['population'].ffill()
@@ -92,8 +92,7 @@ df_year = df[df['year'] == selected_year]
 
 if not df_year.empty:
     
-    # --- KPI SECTION (AGGIORNATA A 5 COLONNE) ---
-    # Usiamo 5 colonne per far stare tutto comodamente
+    # --- KPI SECTION (5 COLONNE) ---
     col1, col2, col3, col4, col5 = st.columns(5)
     
     global_avg = df_year['co2_per_capita'].mean()
@@ -120,10 +119,10 @@ if not df_year.empty:
 
     st.markdown("---")
 
-    # --- TAB SYSTEM ---
+    # --- TAB SYSTEM (EMOJI AGGIORNATE) ---
     tab1, tab2, tab3, tab4 = st.tabs([
-        "🗺️ Map (Per Capita)", 
-        "🗺️ Map (Absolute Giants)", 
+        "👤 Per Capita Map",       # Nuova Emoji Omino (Persone)
+        "🏭 Absolute Emissions Map", # Nuova Emoji Fabbrica (Industria)
         "📈 Historical Trends", 
         "💰 GDP vs CO₂"
     ])
@@ -135,15 +134,16 @@ if not df_year.empty:
     # TAB 1: MAPPA PRO CAPITE
     # ==========================
     with tab1:
+        # Titolo standardizzato
         fig_map = px.choropleth(
             df_year,
             locations="iso_code",
             color="co2_per_capita",
             hover_name="country",
             hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
-            color_continuous_scale="YlOrRd", # Scala Giallo-Arancio-Rosso (Calore)
+            color_continuous_scale="YlOrRd", 
             range_color=(0, 40), 
-            title=f"<b>CO₂ Per Capita Intensity ({selected_year})</b>",
+            title=f"<b>Per Capita CO₂ Emissions ({selected_year})</b>",
         )
         
         if country_zoom != "All Countries (Global View)":
@@ -161,7 +161,6 @@ if not df_year.empty:
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
-        # Variabili per insight
         tp_name = top_per_capita['country']
         tp_pop = top_per_capita['population']
         tp_co2 = top_per_capita['co2']
@@ -191,25 +190,22 @@ if not df_year.empty:
                 st.markdown(f"$$\\frac{{{tp_co2:,.0f} \\text{{ Total}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}$$")
 
     # ==========================
-    # TAB 2: MAPPA ASSOLUTA (NUOVO STYLE)
+    # TAB 2: MAPPA ASSOLUTA
     # ==========================
     with tab2:
+        # TESTO RIMOSSO QUI COME RICHIESTO
         st.subheader("🏭 Total Absolute Emissions (Global Impact)")
-        st.markdown("This map highlights the **volume** of emissions. Here, large economies like China and the US stand out, regardless of population.")
-
+        
         max_abs_co2 = df_year['co2'].max()
 
+        # Titolo standardizzato
         fig_abs = px.choropleth(
             df_year,
             locations="iso_code",
             color="co2", 
             hover_name="country",
             hover_data={'iso_code': False, 'co2': ':,.0f', 'population': ':,.0f'},
-            
-            # --- NUOVO COLORE CLASSICO ---
-            # "Reds" è una scala monocromatica classica. Pulita e professionale.
             color_continuous_scale="Reds", 
-            
             range_color=(0, max_abs_co2), 
             title=f"<b>Total Absolute CO₂ Emissions ({selected_year})</b>",
         )
@@ -225,7 +221,6 @@ if not df_year.empty:
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
         
         st.plotly_chart(fig_abs, use_container_width=True)
-        # TABELLA RIMOSSA COME RICHIESTO
 
     # TAB 3: LINE CHART
     with tab3:
