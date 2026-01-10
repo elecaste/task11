@@ -128,8 +128,7 @@ if not df_year.empty:
 
     # --- TAB SYSTEM ---
     tab1, tab2, tab3 = st.tabs(["🗺️ Global Map & Analysis", "📈 Historical Trends", "💰 GDP vs CO₂ (Finance Insight)"])
-
-    # TAB 1: MAPPA + SPIEGAZIONE AVANZATA
+# TAB 1: MAPPA + SPIEGAZIONE PERSONALIZZATA
     with tab1:
         # 1. MAPPA
         fig_map = px.choropleth(
@@ -163,48 +162,101 @@ if not df_year.empty:
         
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # 2. SEZIONE SPIEGAZIONE (NUOVA!)
+        # 2. SEZIONE SPIEGAZIONE PERSONALIZZATA (NUOVA LOGICA)
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive: Why is {top_country_name} ranked #1?")
         
-        # Logica per generare la spiegazione basata sul tipo di paese
-        gulf_states = ['Qatar', 'United Arab Emirates', 'Kuwait', 'Bahrain', 'Saudi Arabia']
-        western_industrial = ['United States', 'Luxembourg', 'United Kingdom', 'Canada']
-        
-        # Calcoliamo i numeri per l'evidenza
+        # Dati per la formula matematica
         total_co2_val = top_country_row['co2'] 
         pop_val = top_country_row['population']
         per_capita_val = top_country_row['co2_per_capita']
+
+        # --- DIZIONARIO DEGLI INSIGHT (Qui avviene la magia) ---
+        # Scriviamo curiosità specifiche per ogni "vincitore" frequente
         
-        explanation_text = ""
+        custom_insights = {
+            "Qatar": {
+                "icon": "⚡",
+                "title": "The LNG Superpower",
+                "text": """
+                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C for export is incredibly energy-intensive.
+                
+                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination).
+                """
+            },
+            "United Arab Emirates": {
+                "icon": "🏗️",
+                "title": "Construction, Water & Aviation",
+                "text": """
+                **Specific Driver:** Unlike others, the UAE's emissions are driven heavily by rapid **urban construction** (Dubai/Abu Dhabi) and huge aluminum smelting industries.
+                
+                **Water Stress:** The UAE relies almost entirely on **desalination plants** (turning seawater into drinking water), which is one of the most carbon-heavy processes in existence.
+                """
+            },
+            "Kuwait": {
+                "icon": "🛢️",
+                "title": "Oil-Fired Power Generation",
+                "text": """
+                **Specific Driver:** Kuwait has one of the oldest oil infrastructures in the region. Unlike modern economies shifting to gas, Kuwait still burns a significant amount of **heavy crude oil** directly to generate electricity.
+                
+                **Climate Control:** With summer temperatures exceeding 50°C, the energy demand for cooling per square meter is the highest on Earth.
+                """
+            },
+            "Bahrain": {
+                "icon": "🏭",
+                "title": "Aluminum Smelting Giant",
+                "text": """
+                **Specific Driver:** Bahrain is home to **Alba**, one of the largest aluminum smelters in the world. Aluminum production is effectively "solid electricity" because it requires massive amounts of power.
+                
+                **Impact:** This single industry accounts for a huge percentage of the small island's national footprint.
+                """
+            },
+            "Luxembourg": {
+                "icon": "⛽",
+                "title": "The 'Fuel Tourism' Paradox",
+                "text": """
+                **Specific Driver:** Luxembourg often ranks #1 in Europe not just because of its steel industry, but due to **Fuel Tourism**.
+                
+                **The Data Anomaly:** Truckers and commuters from France/Germany drive into Luxembourg to fill up on cheaper diesel. The emissions are counted against Luxembourg, but the fuel is burned elsewhere.
+                """
+            },
+            "United States": {
+                "icon": "🚗",
+                "title": "The Age of Suburban Sprawl",
+                "text": """
+                **Specific Driver:** In the mid-20th century (1950s-70s), the USA developed a car-centric infrastructure. 
+                
+                **Lifestyle:** Large suburban homes (high heating/cooling needs) and low fuel taxes created a culture of high individual consumption compared to denser European cities.
+                """
+            }
+        }
+
+        # --- LOGICA DI SELEZIONE ---
+        # Se il paese è nel nostro dizionario, usiamo il testo personalizzato.
+        # Altrimenti, usiamo un testo generico "smart".
         
-        if top_country_name in gulf_states:
-            explanation_type = "🛢️ **Energy-Intensive Economy (Oil & Gas)**"
-            explanation_text = f"""
-            **The Context:** {top_country_name} is a major producer of fossil fuels. The economy relies heavily on energy-intensive processes like **oil refining** and **desalination** (converting seawater to drinking water), which require massive amounts of energy.
-            
-            **The Denominator Effect:** With a relatively small population ({pop_val:,.0f} people), the massive industrial emissions are divided by few inhabitants, resulting in a very high per capita figure.
-            """
-        elif top_country_name in western_industrial:
-            explanation_type = "🏭 **Industrial Manufacturing & Consumption**"
-            explanation_text = f"""
-            **The Context:** {top_country_name} has a highly developed industrial base (Steel, Manufacturing, Automotive) and high levels of domestic consumption. 
-            
-            **Historical Note:** In the mid-20th century, these economies relied heavily on coal and heavy industry before transitioning to service-based economies.
-            """
+        if top_country_name in custom_insights:
+            insight = custom_insights[top_country_name]
+            final_icon = insight["icon"]
+            final_title = insight["title"]
+            final_text = insight["text"]
         else:
-            explanation_type = "📊 **High Industrial Output / Small Population**"
-            explanation_text = f"""
-            **The Reason:** This country combines significant industrial or mining activity with a relatively small population base. This creates a statistical spike in per-capita metrics compared to larger, more diversified economies.
+            # Fallback generico intelligente
+            final_icon = "📊"
+            final_title = "High Industrial Output / Small Population"
+            final_text = f"""
+            **The Reason:** {top_country_name} combines significant industrial or mining activity with a relatively small population base ({pop_val:,.0f} people). 
+            
+            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking.
             """
 
-        # Mostriamo l'insight in un box pulito
+        # VISUALIZZAZIONE
         with st.expander(f"📖 Read Analysis for {top_country_name}", expanded=True):
             col_a, col_b = st.columns([2, 1])
             
             with col_a:
-                st.markdown(f"### {explanation_type}")
-                st.markdown(explanation_text)
+                st.markdown(f"### {final_icon} {final_title}")
+                st.markdown(final_text)
                 
             with col_b:
                 st.markdown("#### 🧮 The Evidence (Math)")
