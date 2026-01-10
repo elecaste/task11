@@ -10,9 +10,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. CARICAMENTO DATI ---
+# --- 2. CARICAMENTO DATI (Versione V3 per forzare aggiornamento) ---
 @st.cache_data
-def load_data():
+def load_data_final_v3():
     url = "https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv"
     df = pd.read_csv(url)
     
@@ -21,24 +21,22 @@ def load_data():
     
     df = df[df['iso_code'].notna()]
     
-    # --- FIX UNITÀ DI MISURA (FONDAMENTALE) ---
-    # Il dataset originale ha la CO2 in 'Milioni di Tonnellate'.
-    # La convertiamo in 'Tonnellate Reali' (x 1.000.000) per far funzionare i calcoli e le tabelle.
+    # FIX UNITÀ DI MISURA: Convertiamo i Milioni in Tonnellate Reali
     df['co2'] = df['co2'] * 1_000_000
     
-    # FIX GDP 2023/24 e dati mancanti
+    # FIX GDP e dati mancanti
     df = df.sort_values(['country', 'year'])
     df['gdp'] = df.groupby('country')['gdp'].ffill()
     df['population'] = df.groupby('country')['population'].ffill()
     
     df = df.dropna(subset=['co2_per_capita'])
     
-    # Filtro Micro-stati (> 1 Milione abitanti)
+    # Filtro Micro-stati
     df = df[df['population'] > 1000000]
     
     return df
 
-df = load_data()
+df = load_data_final_v3()
 max_year_available = int(df['year'].max())
 
 # --- 3. SIDEBAR ---
@@ -112,7 +110,7 @@ if not df_year.empty:
     with col3:
         st.metric("👤 Top Per Capita", top_per_capita['country'], f"{top_per_capita['co2_per_capita']:.1f} t")
     with col4:
-        # Formattazione KPI Assoluto
+        # Formattazione KPI
         abs_val = top_absolute['co2']
         if abs_val > 1e9:
             abs_str = f"{abs_val/1e9:.2f} B tons"
@@ -166,9 +164,10 @@ if not df_year.empty:
         top5_pc.columns = ['Country', 'Tons per Person']
         top5_pc.reset_index(drop=True, inplace=True)
         top5_pc.index += 1
-        st.dataframe(top5_pc, use_container_width=True)
+        # Usiamo TABLE invece di DATAFRAME per forzare la visualizzazione statica
+        st.table(top5_pc)
         
-        # --- INSIGHTS DETTAGLIATI ---
+        # --- INSIGHTS ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -182,25 +181,19 @@ if not df_year.empty:
                 "icon": "⚡", "title": "The LNG Superpower",
                 "text": """
                 **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C is incredibly energy-intensive.
-                
-                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination).
-                """
+                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination)."""
             },
             "United Arab Emirates": {
                 "icon": "🏗️", "title": "Construction, Water & Aviation",
                 "text": """
                 **Specific Driver:** Unlike others, the UAE's emissions are driven heavily by rapid **urban construction** (Dubai/Abu Dhabi) and huge aluminum smelting industries.
-                
-                **Water Stress:** The UAE relies almost entirely on **desalination plants** (turning seawater into drinking water), which is one of the most carbon-heavy processes in existence.
-                """
+                **Water Stress:** The UAE relies almost entirely on **desalination plants** (turning seawater into drinking water), which is one of the most carbon-heavy processes in existence."""
             },
             "Kuwait": {
                 "icon": "🛢️", "title": "Oil-Fired Power Generation",
                 "text": """
                 **Specific Driver:** Kuwait has one of the oldest oil infrastructures in the region. Unlike modern economies shifting to gas, Kuwait still burns a significant amount of **heavy crude oil** directly to generate electricity.
-                
-                **Climate Control:** With summer temperatures exceeding 50°C, the energy demand for cooling per square meter is the highest on Earth.
-                """
+                **Climate Control:** With summer temperatures exceeding 50°C, the energy demand for cooling per square meter is the highest on Earth."""
             },
             "Bahrain": {
                 "icon": "🏭", "title": "Aluminum Smelting Giant",
@@ -211,9 +204,7 @@ if not df_year.empty:
                 "icon": "🚗", "title": "The Age of Suburban Sprawl",
                 "text": """
                 **Specific Driver:** In the mid-20th century (1950s-70s), the USA developed a car-centric infrastructure. 
-                
-                **Lifestyle:** Large suburban homes (high heating/cooling needs) and low fuel taxes created a culture of high individual consumption compared to denser European cities.
-                """
+                **Lifestyle:** Large suburban homes (high heating/cooling needs) and low fuel taxes created a culture of high individual consumption compared to denser European cities."""
             }
         }
         
@@ -224,9 +215,7 @@ if not df_year.empty:
             final_icon, final_title = "📊", "High Industrial Output / Small Population"
             final_text = f"""
             **The Reason:** {tp_name} combines significant industrial or mining activity with a relatively small population base ({tp_pop:,.0f} people). 
-            
-            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking.
-            """
+            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking."""
 
         with st.expander(f"📖 Read Analysis for {tp_name}", expanded=True):
             c1, c2 = st.columns([2, 1])
@@ -272,13 +261,14 @@ if not df_year.empty:
         
         top5_abs = df_year.sort_values(by="co2", ascending=False).head(5)[['country', 'co2']].copy()
         
-        # ORA FUNZIONERÀ: I numeri sono grandi (Reali) quindi 11 Miliardi > 1e9 = TRUE
+        # Formattazione
         top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} Billion" if x > 1e9 else f"{x/1e6:.0f} Million")
         
         top5_abs.columns = ['Country', 'Total Emissions']
         top5_abs.reset_index(drop=True, inplace=True)
         top5_abs.index += 1
-        st.dataframe(top5_abs, use_container_width=True)
+        # Usiamo TABLE anche qui
+        st.table(top5_abs)
 
     # ==========================
     # TAB 3: LINE CHART
