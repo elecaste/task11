@@ -35,7 +35,6 @@ def load_data():
 
 df = load_data()
 
-# Calcoliamo l'anno massimo disponibile nei dati per usarlo nei titoli
 max_year_available = int(df['year'].max())
 
 # --- 3. SIDEBAR ---
@@ -44,7 +43,6 @@ with st.sidebar:
     
     st.subheader("1. Time Dimension")
     min_year = 1950
-    # Usiamo la variabile calcolata
     max_year = max_year_available
     
     selected_year = st.slider(
@@ -154,7 +152,15 @@ if not df_year.empty:
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # --- INSIGHTS DETTAGLIATI ---
+        # --- LISTA TOP 5 PRO CAPITE (AGGIUNTA QUI SOTTO) ---
+        st.markdown("##### 🏆 Top 5 Ranking (Per Capita)")
+        top5_pc = df_year.sort_values(by="co2_per_capita", ascending=False).head(5)[['country', 'co2_per_capita']].copy()
+        top5_pc.columns = ['Country', 'Tons per Person']
+        top5_pc.reset_index(drop=True, inplace=True)
+        top5_pc.index += 1
+        st.dataframe(top5_pc, use_container_width=True)
+
+        # --- INSIGHTS ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -165,49 +171,33 @@ if not df_year.empty:
 
         custom_insights = {
             "Qatar": {
-                "icon": "⚡",
-                "title": "The LNG Superpower",
+                "icon": "⚡", "title": "The LNG Superpower",
                 "text": """
-                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C for export is incredibly energy-intensive.
-                
-                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination).
-                """
+                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C is incredibly energy-intensive.
+                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates (AC and desalination)."""
             },
             "United Arab Emirates": {
-                "icon": "🏗️",
-                "title": "Construction, Water & Aviation",
+                "icon": "🏗️", "title": "Construction & Water",
                 "text": """
-                **Specific Driver:** Unlike others, the UAE's emissions are driven heavily by rapid **urban construction** (Dubai/Abu Dhabi) and huge aluminum smelting industries.
-                
-                **Water Stress:** The UAE relies almost entirely on **desalination plants** (turning seawater into drinking water), which is one of the most carbon-heavy processes in existence.
-                """
+                **Specific Driver:** Emissions driven by rapid **urban construction** (Dubai) and aluminum smelting.
+                **Water Stress:** Relies almost entirely on **desalination plants**, which are extremely carbon-heavy."""
             },
             "Kuwait": {
-                "icon": "🛢️",
-                "title": "Oil-Fired Power Generation",
+                "icon": "🛢️", "title": "Oil-Fired Power",
                 "text": """
-                **Specific Driver:** Kuwait has one of the oldest oil infrastructures in the region. Unlike modern economies shifting to gas, Kuwait still burns a significant amount of **heavy crude oil** directly to generate electricity.
-                
-                **Climate Control:** With summer temperatures exceeding 50°C, the energy demand for cooling per square meter is the highest on Earth.
-                """
+                **Specific Driver:** Kuwait burns significant amounts of **heavy crude oil** directly to generate electricity.
+                **Climate Control:** Extreme summer heat drives massive cooling demand per square meter."""
             },
             "Bahrain": {
-                "icon": "🏭",
-                "title": "Aluminum Smelting Giant",
+                "icon": "🏭", "title": "Aluminum Smelting",
                 "text": """
-                **Specific Driver:** Bahrain is home to **Alba**, one of the largest aluminum smelters in the world. Aluminum production is effectively "solid electricity" because it requires massive amounts of power.
-                
-                **Impact:** This single industry accounts for a huge percentage of the small island's national footprint.
-                """
+                **Specific Driver:** Home to **Alba**, one of the world's largest aluminum smelters. Aluminum production acts as "solid electricity" export."""
             },
             "United States": {
-                "icon": "🚗",
-                "title": "The Age of Suburban Sprawl",
+                "icon": "🚗", "title": "Suburban Sprawl",
                 "text": """
-                **Specific Driver:** In the mid-20th century (1950s-70s), the USA developed a car-centric infrastructure. 
-                
-                **Lifestyle:** Large suburban homes (high heating/cooling needs) and low fuel taxes created a culture of high individual consumption compared to denser European cities.
-                """
+                **Specific Driver:** Car-centric infrastructure and low fuel taxes.
+                **Lifestyle:** Large suburban homes with high heating/cooling needs lead to high individual consumption."""
             }
         }
         
@@ -216,11 +206,7 @@ if not df_year.empty:
             final_icon, final_title, final_text = insight["icon"], insight["title"], insight["text"]
         else:
             final_icon, final_title = "📊", "High Industrial Output / Small Population"
-            final_text = f"""
-            **The Reason:** {tp_name} combines significant industrial or mining activity with a relatively small population base ({tp_pop:,.0f} people). 
-            
-            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking.
-            """
+            final_text = f"**The Reason:** {tp_name} combines significant industrial activity with a relatively small population base ({tp_pop:,.0f} people)."
 
         with st.expander(f"📖 Read Analysis for {tp_name}", expanded=True):
             c1, c2 = st.columns([2, 1])
@@ -230,12 +216,8 @@ if not df_year.empty:
             with c2:
                 st.markdown("#### 🧮 The Evidence (Math)")
                 st.markdown(f"How we get **{tp_val:.1f} tons**:")
-                st.markdown(f"""
-                $$
-                \\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}
-                $$
-                """)
-                st.markdown("*A small population (Denominator) amplifies the result.*")
+                st.markdown(f"$$\\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}$$")
+                st.markdown("*Small population amplifies the result.*")
 
     # ==========================
     # TAB 2: MAPPA ASSOLUTA
@@ -263,52 +245,42 @@ if not df_year.empty:
         fig_abs.update_geos(**geo_settings)
         fig_abs.update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0})
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
-        
         st.plotly_chart(fig_abs, use_container_width=True)
 
-   
+        # --- LISTA TOP 5 ASSOLUTA (AGGIUNTA QUI SOTTO) ---
+        st.markdown("##### 🏆 Top 5 Ranking (Total Volume)")
+        top5_abs = df_year.sort_values(by="co2", ascending=False).head(5)[['country', 'co2']].copy()
+        
+        # Formattiamo i numeri grandi
+        top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} Billion" if x > 1e9 else f"{x/1e6:.0f} Million")
+        
+        top5_abs.columns = ['Country', 'Total Tonnes']
+        top5_abs.reset_index(drop=True, inplace=True)
+        top5_abs.index += 1
+        st.dataframe(top5_abs, use_container_width=True)
+
+
     # ==========================
-    # TAB 3: LINE CHART (DINAMICO: PER CAPITA vs TOTAL)
+    # TAB 3: LINE CHART
     # ==========================
     with tab3:
         st.subheader("Historical Evolution")
-        
-        # Aggiungiamo un selettore per scegliere cosa visualizzare
-        chart_mode = st.radio(
-            "Select Metric:",
-            ["Per Capita (Intensity)", "Total Absolute (Volume)"],
-            horizontal=True
-        )
+        chart_mode = st.radio("Select Metric:", ["Per Capita (Intensity)", "Total Absolute (Volume)"], horizontal=True)
         
         df_trend = df[df['country'].isin(selected_countries)]
         
         if not df_trend.empty:
-            # Logica per cambiare i dati in base alla scelta
             if chart_mode == "Per Capita (Intensity)":
-                y_col = "co2_per_capita"
-                title_text = f"<b>Per Capita Emission Trajectories (1950-{max_year_available})</b>"
-                y_label = "Tons per Person"
+                y_col, title_text, y_label = "co2_per_capita", f"<b>Per Capita Emission Trajectories (1950-{max_year_available})</b>", "Tons per Person"
             else:
-                y_col = "co2"
-                title_text = f"<b>Total Absolute Emission Trajectories (1950-{max_year_available})</b>"
-                y_label = "Total Tons"
+                y_col, title_text, y_label = "co2", f"<b>Total Absolute Emission Trajectories (1950-{max_year_available})</b>", "Total Tons"
             
-            fig_line = px.line(
-                df_trend, 
-                x="year", 
-                y=y_col, 
-                color="country", 
-                title=title_text,
-                markers=False,
-                labels={y_col: y_label} # Rinomina l'asse Y per chiarezza
-            )
-            
+            fig_line = px.line(df_trend, x="year", y=y_col, color="country", title=title_text, markers=False, labels={y_col: y_label})
             fig_line.add_vline(x=selected_year, line_dash="dash", line_color="red", opacity=0.5)
             st.plotly_chart(fig_line, use_container_width=True)
             
-            # Nota esplicativa dinamica
             if chart_mode == "Total Absolute (Volume)":
-                 st.info("💡 **Observation:** Notice how China's total emissions (Red Line) surpassed the US around **2006**, becoming the world's largest absolute emitter.")
+                 st.info("💡 **Observation:** Notice how China's total emissions (Red Line) surpassed the US around **2006**.")
         else:
             st.warning("Select countries in the sidebar.")
 
