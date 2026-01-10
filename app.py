@@ -151,15 +151,15 @@ if not df_year.empty:
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
 
-        # --- LISTA TOP 5 SOTTO LA MAPPA (NUOVO!) ---
-        st.markdown("#### 🏆 Top 5 Countries (Per Capita Intensity)")
+        # --- LISTA TOP 5 QUI SOTTO (TAB 1) ---
+        st.markdown("#### 🏆 Top 5 Countries (Per Capita)")
         top5_pc = df_year.sort_values(by="co2_per_capita", ascending=False).head(5)[['country', 'co2_per_capita']].copy()
         top5_pc.columns = ['Country', 'Tons per Person']
         top5_pc.reset_index(drop=True, inplace=True)
         top5_pc.index += 1
         st.dataframe(top5_pc, use_container_width=True)
         
-        # --- INSIGHTS DETTAGLIATI (RIPRISTINATI CORRETTAMENTE) ---
+        # --- INSIGHTS DETTAGLIATI ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -172,35 +172,42 @@ if not df_year.empty:
             "Qatar": {
                 "icon": "⚡", "title": "The LNG Superpower",
                 "text": """
-                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C is incredibly energy-intensive.
+                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C for export is incredibly energy-intensive.
                 
-                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates (AC and desalination)."""
+                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination).
+                """
             },
             "United Arab Emirates": {
-                "icon": "🏗️", "title": "Construction & Water",
+                "icon": "🏗️", "title": "Construction, Water & Aviation",
                 "text": """
-                **Specific Driver:** Emissions driven by rapid **urban construction** (Dubai) and aluminum smelting.
+                **Specific Driver:** Unlike others, the UAE's emissions are driven heavily by rapid **urban construction** (Dubai/Abu Dhabi) and huge aluminum smelting industries.
                 
-                **Water Stress:** Relies almost entirely on **desalination plants**, which are extremely carbon-heavy."""
+                **Water Stress:** The UAE relies almost entirely on **desalination plants** (turning seawater into drinking water), which is one of the most carbon-heavy processes in existence.
+                """
             },
             "Kuwait": {
-                "icon": "🛢️", "title": "Oil-Fired Power",
+                "icon": "🛢️", "title": "Oil-Fired Power Generation",
                 "text": """
-                **Specific Driver:** Kuwait burns significant amounts of **heavy crude oil** directly to generate electricity.
+                **Specific Driver:** Kuwait has one of the oldest oil infrastructures in the region. Unlike modern economies shifting to gas, Kuwait still burns a significant amount of **heavy crude oil** directly to generate electricity.
                 
-                **Climate Control:** Extreme summer heat drives massive cooling demand per square meter."""
+                **Climate Control:** With summer temperatures exceeding 50°C, the energy demand for cooling per square meter is the highest on Earth.
+                """
             },
             "Bahrain": {
-                "icon": "🏭", "title": "Aluminum Smelting",
+                "icon": "🏭", "title": "Aluminum Smelting Giant",
                 "text": """
-                **Specific Driver:** Home to **Alba**, one of the world's largest aluminum smelters. Aluminum production acts as "solid electricity" export."""
+                **Specific Driver:** Bahrain is home to **Alba**, one of the largest aluminum smelters in the world. Aluminum production is effectively "solid electricity" because it requires massive amounts of power.
+                
+                **Impact:** This single industry accounts for a huge percentage of the small island's national footprint.
+                """
             },
             "United States": {
-                "icon": "🚗", "title": "Suburban Sprawl",
+                "icon": "🚗", "title": "The Age of Suburban Sprawl",
                 "text": """
-                **Specific Driver:** Car-centric infrastructure and low fuel taxes.
+                **Specific Driver:** In the mid-20th century (1950s-70s), the USA developed a car-centric infrastructure. 
                 
-                **Lifestyle:** Large suburban homes with high heating/cooling needs lead to high individual consumption."""
+                **Lifestyle:** Large suburban homes (high heating/cooling needs) and low fuel taxes created a culture of high individual consumption compared to denser European cities.
+                """
             }
         }
         
@@ -210,9 +217,10 @@ if not df_year.empty:
         else:
             final_icon, final_title = "📊", "High Industrial Output / Small Population"
             final_text = f"""
-            **The Reason:** {tp_name} combines significant industrial activity with a relatively small population base ({tp_pop:,.0f} people).
+            **The Reason:** {tp_name} combines significant industrial or mining activity with a relatively small population base ({tp_pop:,.0f} people). 
             
-            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking."""
+            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking.
+            """
 
         with st.expander(f"📖 Read Analysis for {tp_name}", expanded=True):
             c1, c2 = st.columns([2, 1])
@@ -222,7 +230,11 @@ if not df_year.empty:
             with c2:
                 st.markdown("#### 🧮 The Evidence (Math)")
                 st.markdown(f"How we get **{tp_val:.1f} tons**:")
-                st.markdown(f"$$\\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}$$")
+                st.markdown(f"""
+                $$
+                \\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}
+                $$
+                """)
                 st.markdown("*A small population (Denominator) amplifies the result.*")
 
     # ==========================
@@ -253,11 +265,13 @@ if not df_year.empty:
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
         st.plotly_chart(fig_abs, use_container_width=True)
 
-        # --- LISTA TOP 5 SOTTO LA MAPPA (NUOVO!) ---
+        # --- LISTA TOP 5 QUI SOTTO (TAB 2) ---
         st.markdown("#### 🏆 Top 5 Countries (Total Volume)")
         top5_abs = df_year.sort_values(by="co2", ascending=False).head(5)[['country', 'co2']].copy()
-        top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} Billion" if x > 1e9 else f"{x/1e6:.0f} Million")
-        top5_abs.columns = ['Country', 'Total Tonnes']
+        
+        # Formattazione Numeri Grandi
+        top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} B" if x > 1e9 else f"{x/1e6:.0f} M")
+        top5_abs.columns = ['Country', 'Total Emissions']
         top5_abs.reset_index(drop=True, inplace=True)
         top5_abs.index += 1
         st.dataframe(top5_abs, use_container_width=True)
