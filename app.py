@@ -11,26 +11,36 @@ st.set_page_config(
 )
 
 # --- 2. CARICAMENTO DATI ---
+# --- 2. CARICAMENTO DATI (Con Fix per GDP mancante 2023/2024) ---
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv"
     df = pd.read_csv(url)
     
-    # Selezioniamo colonne utili (Aggiunto 'co2' totale per i calcoli esplicativi)
+    # Selezioniamo colonne utili
     keep_cols = ['country', 'year', 'iso_code', 'population', 'gdp', 'co2_per_capita', 'co2']
     df = df[keep_cols]
     
-    # Pulizia base
+    # Pulizia base (Rimuoviamo continenti e aggregati)
     df = df[df['iso_code'].notna()]
-    df = df.dropna(subset=['co2_per_capita', 'population', 'co2']) 
     
-    # --- FILTRO MICRO-STATI ---
-    # Teniamo solo paesi con più di 1 milione di abitanti per evitare distorsioni
+    # --- IL TRUCCO PER I DATI MANCANTI (FORWARD FILL) ---
+    # Ordiniamo per paese e anno
+    df = df.sort_values(['country', 'year'])
+    
+    # Questa è la parte magica:
+    # "Se il GDP del 2024 è vuoto, copiami dentro il valore del 2022 o 2023"
+    df['gdp'] = df.groupby('country')['gdp'].ffill()
+    df['population'] = df.groupby('country')['population'].ffill()
+    
+    # Ora rimuoviamo le righe SOLO se manca la CO2 (che è il dato principale)
+    # Non ci preoccupiamo più se manca il GDP originale, perché lo abbiamo riempito noi.
+    df = df.dropna(subset=['co2_per_capita'])
+    
+    # Filtro Micro-stati (popolazione > 1 milione)
     df = df[df['population'] > 1000000]
     
     return df
-
-df = load_data()
 
 # --- 3. SIDEBAR ---
 with st.sidebar:
