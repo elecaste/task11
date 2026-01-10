@@ -88,8 +88,16 @@ if not df_year.empty:
     with col2:
         st.metric("🌍 Global Avg (Per Capita)", f"{global_avg:.2f} t")
     with col3:
-        if max_emitter is not None:
-            st.metric("🏭 Highest Emitter", max_emitter['country'], f"{max_emitter['co2_per_capita']:.1f} t")
+        st.markdown("**🏭 Top 5 Ranking**")
+        # Creiamo una mini tabella pulita per la visualizzazione
+        top5_display = top_5_emitters[['country', 'co2_per_capita']].copy()
+        top5_display.columns = ['Country', 'Tons']
+        # Resettiamo l'indice per farlo partire da 1
+        top5_display.reset_index(drop=True, inplace=True)
+        top5_display.index += 1
+        
+        # Mostriamo la tabella senza indici fastidiosi
+        st.dataframe(top5_display, height=180, use_container_width=True)
     with col4:
         st.metric("👥 Tracked Population", f"{df_year['population'].sum()/1e9:.2f} B")
 
