@@ -266,24 +266,49 @@ if not df_year.empty:
         
         st.plotly_chart(fig_abs, use_container_width=True)
 
+   
     # ==========================
-    # TAB 3: LINE CHART (AGGIORNATO AL 2024)
+    # TAB 3: LINE CHART (DINAMICO: PER CAPITA vs TOTAL)
     # ==========================
     with tab3:
-        st.subheader("Historical Evolution (Per Capita)")
+        st.subheader("Historical Evolution")
+        
+        # Aggiungiamo un selettore per scegliere cosa visualizzare
+        chart_mode = st.radio(
+            "Select Metric:",
+            ["Per Capita (Intensity)", "Total Absolute (Volume)"],
+            horizontal=True
+        )
+        
         df_trend = df[df['country'].isin(selected_countries)]
+        
         if not df_trend.empty:
-            # Qui usiamo f-string con {max_year_available} per rendere il titolo dinamico
+            # Logica per cambiare i dati in base alla scelta
+            if chart_mode == "Per Capita (Intensity)":
+                y_col = "co2_per_capita"
+                title_text = f"<b>Per Capita Emission Trajectories (1950-{max_year_available})</b>"
+                y_label = "Tons per Person"
+            else:
+                y_col = "co2"
+                title_text = f"<b>Total Absolute Emission Trajectories (1950-{max_year_available})</b>"
+                y_label = "Total Tons"
+            
             fig_line = px.line(
                 df_trend, 
                 x="year", 
-                y="co2_per_capita", 
+                y=y_col, 
                 color="country", 
-                title=f"<b>Emission Trajectories (1950-{max_year_available})</b>", # <--- MODIFICA QUI
-                markers=False
+                title=title_text,
+                markers=False,
+                labels={y_col: y_label} # Rinomina l'asse Y per chiarezza
             )
+            
             fig_line.add_vline(x=selected_year, line_dash="dash", line_color="red", opacity=0.5)
             st.plotly_chart(fig_line, use_container_width=True)
+            
+            # Nota esplicativa dinamica
+            if chart_mode == "Total Absolute (Volume)":
+                 st.info("💡 **Observation:** Notice how China's total emissions (Red Line) surpassed the US around **2006**, becoming the world's largest absolute emitter.")
         else:
             st.warning("Select countries in the sidebar.")
 
