@@ -10,9 +10,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. CARICAMENTO DATI (Versione V3 per forzare aggiornamento) ---
+# --- 2. CARICAMENTO DATI ---
 @st.cache_data
-def load_data_final_v3():
+def load_data_final_v4():
     url = "https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv"
     df = pd.read_csv(url)
     
@@ -36,7 +36,7 @@ def load_data_final_v3():
     
     return df
 
-df = load_data_final_v3()
+df = load_data_final_v4()
 max_year_available = int(df['year'].max())
 
 # --- 3. SIDEBAR ---
@@ -44,6 +44,7 @@ with st.sidebar:
     st.title("📊 Control Panel")
     
     st.subheader("1. Time Dimension")
+    # Impostiamo il minimo a 1950 anche qui per coerenza
     min_year = 1950
     max_year = max_year_available
     
@@ -164,7 +165,6 @@ if not df_year.empty:
         top5_pc.columns = ['Country', 'Tons per Person']
         top5_pc.reset_index(drop=True, inplace=True)
         top5_pc.index += 1
-        # Usiamo TABLE invece di DATAFRAME per forzare la visualizzazione statica
         st.table(top5_pc)
         
         # --- INSIGHTS ---
@@ -267,17 +267,17 @@ if not df_year.empty:
         top5_abs.columns = ['Country', 'Total Emissions']
         top5_abs.reset_index(drop=True, inplace=True)
         top5_abs.index += 1
-        # Usiamo TABLE anche qui
         st.table(top5_abs)
 
     # ==========================
-    # TAB 3: LINE CHART
+    # TAB 3: LINE CHART (CON FILTRO ANNO 1950)
     # ==========================
     with tab3:
         st.subheader("Historical Evolution")
         chart_mode = st.radio("Select Metric:", ["Per Capita (Intensity)", "Total Absolute (Volume)"], horizontal=True)
         
-        df_trend = df[df['country'].isin(selected_countries)]
+        # --- QUI HO AGGIUNTO IL FILTRO DAL 1950 ---
+        df_trend = df[(df['country'].isin(selected_countries)) & (df['year'] >= 1950)]
         
         if not df_trend.empty:
             if chart_mode == "Per Capita (Intensity)":
