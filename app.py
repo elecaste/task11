@@ -92,15 +92,11 @@ df_year = df[df['year'] == selected_year]
 
 if not df_year.empty:
     
-    # --- KPI SECTION (5 COLONNE) ---
+    # --- KPI SECTION (ICONE AGGIORNATE) ---
     col1, col2, col3, col4, col5 = st.columns(5)
     
     global_avg = df_year['co2_per_capita'].mean()
-    
-    # Calcolo Top Per Capita
     top_per_capita = df_year.sort_values(by="co2_per_capita", ascending=False).iloc[0]
-    
-    # Calcolo Top Absolute (Totale)
     top_absolute = df_year.sort_values(by="co2", ascending=False).iloc[0]
     
     with col1:
@@ -108,9 +104,10 @@ if not df_year.empty:
     with col2:
         st.metric("🌍 Global Avg", f"{global_avg:.2f} t")
     with col3:
-        st.metric("🏭 Top Per Capita", top_per_capita['country'], f"{top_per_capita['co2_per_capita']:.1f} t")
+        # Icona Omino per Per Capita
+        st.metric("👤 Top Per Capita", top_per_capita['country'], f"{top_per_capita['co2_per_capita']:.1f} t")
     with col4:
-        # Formattiamo i miliardi per il totale assoluto
+        # Icona Fabbrica per Assoluto
         abs_val = top_absolute['co2']
         abs_str = f"{abs_val/1e9:.2f} B tons" if abs_val > 1e9 else f"{abs_val/1e6:.0f} M tons"
         st.metric("🏭 Top Absolute", top_absolute['country'], abs_str)
@@ -119,22 +116,23 @@ if not df_year.empty:
 
     st.markdown("---")
 
-    # --- TAB SYSTEM (EMOJI AGGIORNATE) ---
+    # --- TAB SYSTEM (NOMI COERENTI) ---
     tab1, tab2, tab3, tab4 = st.tabs([
-        "👤 Per Capita Map",       # Nuova Emoji Omino (Persone)
-        "🏭 Absolute Emissions Map", # Nuova Emoji Fabbrica (Industria)
+        "👤 Per Capita Map",       
+        "🏭 Absolute Emissions Map", 
         "📈 Historical Trends", 
         "💰 GDP vs CO₂"
     ])
 
-    # Logica Zoom Condivisa
     geo_settings = dict(showframe=False, projection_type="natural earth", showocean=True, oceancolor="#f0f8ff")
     
     # ==========================
     # TAB 1: MAPPA PRO CAPITE
     # ==========================
     with tab1:
-        # Titolo standardizzato
+        # TITOLO GRANDE AGGIUNTO QUI
+        st.subheader("👤 Per Capita CO₂ Emissions (Intensity)")
+        
         fig_map = px.choropleth(
             df_year,
             locations="iso_code",
@@ -143,21 +141,21 @@ if not df_year.empty:
             hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
             color_continuous_scale="YlOrRd", 
             range_color=(0, 40), 
-            title=f"<b>Per Capita CO₂ Emissions ({selected_year})</b>",
+            # Rimosso il titolo interno di Plotly per pulizia, visto che ora c'è il subheader sopra
+            # oppure lo lasciamo piccolo come sottotitolo tecnico
         )
         
         if country_zoom != "All Countries (Global View)":
             selected_data = df_year[df_year['country'] == country_zoom]
             if not selected_data.empty:
                 fig_map.add_trace(px.choropleth(selected_data, locations="iso_code", color_discrete_sequence=["rgba(0,0,0,0)"]).update_traces(marker_line_color="Cyan", marker_line_width=4).data[0])
-                fig_map.update_layout(title_text=f"<b>Per Capita View - Highlighted: {country_zoom}</b>")
 
         fig_map.update_geos(**geo_settings)
-        fig_map.update_layout(height=550, margin={"r":0,"t":40,"l":0,"b":0})
+        fig_map.update_layout(height=550, margin={"r":0,"t":0,"l":0,"b":0}) # Margine top ridotto
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # --- INSIGHTS PRO CAPITE ---
+        # --- INSIGHTS ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -193,12 +191,11 @@ if not df_year.empty:
     # TAB 2: MAPPA ASSOLUTA
     # ==========================
     with tab2:
-        # TESTO RIMOSSO QUI COME RICHIESTO
+        # TITOLO GRANDE (GIA' PRESENTE, confermato)
         st.subheader("🏭 Total Absolute Emissions (Global Impact)")
         
         max_abs_co2 = df_year['co2'].max()
 
-        # Titolo standardizzato
         fig_abs = px.choropleth(
             df_year,
             locations="iso_code",
@@ -207,17 +204,15 @@ if not df_year.empty:
             hover_data={'iso_code': False, 'co2': ':,.0f', 'population': ':,.0f'},
             color_continuous_scale="Reds", 
             range_color=(0, max_abs_co2), 
-            title=f"<b>Total Absolute CO₂ Emissions ({selected_year})</b>",
         )
 
         if country_zoom != "All Countries (Global View)":
              selected_data_abs = df_year[df_year['country'] == country_zoom]
              if not selected_data_abs.empty:
                 fig_abs.add_trace(px.choropleth(selected_data_abs, locations="iso_code", color_discrete_sequence=["rgba(0,0,0,0)"]).update_traces(marker_line_color="Cyan", marker_line_width=4).data[0])
-                fig_abs.update_layout(title_text=f"<b>Absolute View - Highlighted: {country_zoom}</b>")
 
         fig_abs.update_geos(**geo_settings)
-        fig_abs.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
+        fig_abs.update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0})
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
         
         st.plotly_chart(fig_abs, use_container_width=True)
