@@ -150,7 +150,7 @@ if not df_year.empty:
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # --- INSIGHTS ---
+        # --- INSIGHTS DETTAGLIATI (RIPRISTINATI) ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -159,7 +159,6 @@ if not df_year.empty:
         tp_co2 = top_per_capita['co2']
         tp_val = top_per_capita['co2_per_capita']
 
-        # --- DIZIONARIO RIPRISTINATO CON TESTI COMPLETI ---
         custom_insights = {
             "Qatar": {
                 "icon": "⚡",
@@ -225,8 +224,15 @@ if not df_year.empty:
                 st.markdown(f"### {final_icon} {final_title}")
                 st.markdown(final_text)
             with c2:
-                st.markdown("#### 🧮 The Math")
-                st.markdown(f"$$\\frac{{{tp_co2:,.0f} \\text{{ Total}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}$$")
+                st.markdown("#### 🧮 The Evidence (Math)")
+                st.markdown(f"How we get **{tp_val:.1f} tons**:")
+                # Formula LaTeX esplicita
+                st.markdown(f"""
+                $$
+                \\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}
+                $$
+                """)
+                st.markdown("*A small population (Denominator) amplifies the result.*")
 
     # ==========================
     # TAB 2: MAPPA ASSOLUTA
