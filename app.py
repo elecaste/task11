@@ -92,7 +92,7 @@ df_year = df[df['year'] == selected_year]
 
 if not df_year.empty:
     
-    # --- KPI SECTION (ICONE AGGIORNATE) ---
+    # --- KPI SECTION ---
     col1, col2, col3, col4, col5 = st.columns(5)
     
     global_avg = df_year['co2_per_capita'].mean()
@@ -104,10 +104,8 @@ if not df_year.empty:
     with col2:
         st.metric("🌍 Global Avg", f"{global_avg:.2f} t")
     with col3:
-        # Icona Omino per Per Capita
         st.metric("👤 Top Per Capita", top_per_capita['country'], f"{top_per_capita['co2_per_capita']:.1f} t")
     with col4:
-        # Icona Fabbrica per Assoluto
         abs_val = top_absolute['co2']
         abs_str = f"{abs_val/1e9:.2f} B tons" if abs_val > 1e9 else f"{abs_val/1e6:.0f} M tons"
         st.metric("🏭 Top Absolute", top_absolute['country'], abs_str)
@@ -116,7 +114,7 @@ if not df_year.empty:
 
     st.markdown("---")
 
-    # --- TAB SYSTEM (NOMI COERENTI) ---
+    # --- TAB SYSTEM ---
     tab1, tab2, tab3, tab4 = st.tabs([
         "👤 Per Capita Map",       
         "🏭 Absolute Emissions Map", 
@@ -130,7 +128,6 @@ if not df_year.empty:
     # TAB 1: MAPPA PRO CAPITE
     # ==========================
     with tab1:
-        # TITOLO GRANDE AGGIUNTO QUI
         st.subheader("👤 Per Capita CO₂ Emissions (Intensity)")
         
         fig_map = px.choropleth(
@@ -141,8 +138,6 @@ if not df_year.empty:
             hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
             color_continuous_scale="YlOrRd", 
             range_color=(0, 40), 
-            # Rimosso il titolo interno di Plotly per pulizia, visto che ora c'è il subheader sopra
-            # oppure lo lasciamo piccolo come sottotitolo tecnico
         )
         
         if country_zoom != "All Countries (Global View)":
@@ -151,7 +146,7 @@ if not df_year.empty:
                 fig_map.add_trace(px.choropleth(selected_data, locations="iso_code", color_discrete_sequence=["rgba(0,0,0,0)"]).update_traces(marker_line_color="Cyan", marker_line_width=4).data[0])
 
         fig_map.update_geos(**geo_settings)
-        fig_map.update_layout(height=550, margin={"r":0,"t":0,"l":0,"b":0}) # Margine top ridotto
+        fig_map.update_layout(height=550, margin={"r":0,"t":0,"l":0,"b":0})
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
         
@@ -164,11 +159,53 @@ if not df_year.empty:
         tp_co2 = top_per_capita['co2']
         tp_val = top_per_capita['co2_per_capita']
 
+        # --- DIZIONARIO RIPRISTINATO CON TESTI COMPLETI ---
         custom_insights = {
-            "Qatar": {"icon": "⚡", "title": "The LNG Superpower", "text": "Massive energy required for LNG cooling and desalination, divided by a small population."},
-            "United Arab Emirates": {"icon": "🏗️", "title": "Construction & Water", "text": "Driven by rapid urban construction (Dubai) and energy-intensive water desalination."},
-            "Kuwait": {"icon": "🛢️", "title": "Oil-Fired Power", "text": "Relies heavily on burning crude oil directly for electricity and extreme cooling needs."},
-            "United States": {"icon": "🚗", "title": "High Consumption Lifestyle", "text": "Historical development based on car-centric infrastructure, large homes, and high consumption."},
+            "Qatar": {
+                "icon": "⚡",
+                "title": "The LNG Superpower",
+                "text": """
+                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C for export is incredibly energy-intensive.
+                
+                **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination).
+                """
+            },
+            "United Arab Emirates": {
+                "icon": "🏗️",
+                "title": "Construction, Water & Aviation",
+                "text": """
+                **Specific Driver:** Unlike others, the UAE's emissions are driven heavily by rapid **urban construction** (Dubai/Abu Dhabi) and huge aluminum smelting industries.
+                
+                **Water Stress:** The UAE relies almost entirely on **desalination plants** (turning seawater into drinking water), which is one of the most carbon-heavy processes in existence.
+                """
+            },
+            "Kuwait": {
+                "icon": "🛢️",
+                "title": "Oil-Fired Power Generation",
+                "text": """
+                **Specific Driver:** Kuwait has one of the oldest oil infrastructures in the region. Unlike modern economies shifting to gas, Kuwait still burns a significant amount of **heavy crude oil** directly to generate electricity.
+                
+                **Climate Control:** With summer temperatures exceeding 50°C, the energy demand for cooling per square meter is the highest on Earth.
+                """
+            },
+            "Bahrain": {
+                "icon": "🏭",
+                "title": "Aluminum Smelting Giant",
+                "text": """
+                **Specific Driver:** Bahrain is home to **Alba**, one of the largest aluminum smelters in the world. Aluminum production is effectively "solid electricity" because it requires massive amounts of power.
+                
+                **Impact:** This single industry accounts for a huge percentage of the small island's national footprint.
+                """
+            },
+            "United States": {
+                "icon": "🚗",
+                "title": "The Age of Suburban Sprawl",
+                "text": """
+                **Specific Driver:** In the mid-20th century (1950s-70s), the USA developed a car-centric infrastructure. 
+                
+                **Lifestyle:** Large suburban homes (high heating/cooling needs) and low fuel taxes created a culture of high individual consumption compared to denser European cities.
+                """
+            }
         }
         
         if tp_name in custom_insights:
@@ -176,7 +213,11 @@ if not df_year.empty:
             final_icon, final_title, final_text = insight["icon"], insight["title"], insight["text"]
         else:
             final_icon, final_title = "📊", "High Industrial Output / Small Population"
-            final_text = f"{tp_name} combines significant industrial activity with a relatively small population base."
+            final_text = f"""
+            **The Reason:** {tp_name} combines significant industrial or mining activity with a relatively small population base ({tp_pop:,.0f} people). 
+            
+            **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking.
+            """
 
         with st.expander(f"📖 Read Analysis for {tp_name}", expanded=True):
             c1, c2 = st.columns([2, 1])
@@ -191,7 +232,6 @@ if not df_year.empty:
     # TAB 2: MAPPA ASSOLUTA
     # ==========================
     with tab2:
-        # TITOLO GRANDE (GIA' PRESENTE, confermato)
         st.subheader("🏭 Total Absolute Emissions (Global Impact)")
         
         max_abs_co2 = df_year['co2'].max()
