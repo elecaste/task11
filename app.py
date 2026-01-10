@@ -35,13 +35,17 @@ def load_data():
 
 df = load_data()
 
+# Calcoliamo l'anno massimo disponibile nei dati per usarlo nei titoli
+max_year_available = int(df['year'].max())
+
 # --- 3. SIDEBAR ---
 with st.sidebar:
     st.title("📊 Control Panel")
     
     st.subheader("1. Time Dimension")
     min_year = 1950
-    max_year = int(df['year'].max())
+    # Usiamo la variabile calcolata
+    max_year = max_year_available
     
     selected_year = st.slider(
         "Select Year:",
@@ -150,7 +154,7 @@ if not df_year.empty:
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # --- INSIGHTS DETTAGLIATI (RIPRISTINATI) ---
+        # --- INSIGHTS DETTAGLIATI ---
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive (Per Capita): Why is {top_per_capita['country']} ranked #1?")
         
@@ -226,7 +230,6 @@ if not df_year.empty:
             with c2:
                 st.markdown("#### 🧮 The Evidence (Math)")
                 st.markdown(f"How we get **{tp_val:.1f} tons**:")
-                # Formula LaTeX esplicita
                 st.markdown(f"""
                 $$
                 \\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}
@@ -263,18 +266,30 @@ if not df_year.empty:
         
         st.plotly_chart(fig_abs, use_container_width=True)
 
-    # TAB 3: LINE CHART
+    # ==========================
+    # TAB 3: LINE CHART (AGGIORNATO AL 2024)
+    # ==========================
     with tab3:
         st.subheader("Historical Evolution (Per Capita)")
         df_trend = df[df['country'].isin(selected_countries)]
         if not df_trend.empty:
-            fig_line = px.line(df_trend, x="year", y="co2_per_capita", color="country", title="<b>Emission Trajectories (1950-2022)</b>", markers=False)
+            # Qui usiamo f-string con {max_year_available} per rendere il titolo dinamico
+            fig_line = px.line(
+                df_trend, 
+                x="year", 
+                y="co2_per_capita", 
+                color="country", 
+                title=f"<b>Emission Trajectories (1950-{max_year_available})</b>", # <--- MODIFICA QUI
+                markers=False
+            )
             fig_line.add_vline(x=selected_year, line_dash="dash", line_color="red", opacity=0.5)
             st.plotly_chart(fig_line, use_container_width=True)
         else:
             st.warning("Select countries in the sidebar.")
 
+    # ==========================
     # TAB 4: SCATTER PLOT
+    # ==========================
     with tab4:
         st.subheader("Economic Growth vs. Environmental Impact")
         st.markdown("*Does being richer mean polluting more?* (GDP vs CO₂ Per Capita)")
