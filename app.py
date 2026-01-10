@@ -10,8 +10,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. CARICAMENTO DATI ---
-# --- 2. CARICAMENTO DATI (Con Fix per GDP mancante 2023/2024) ---
+# --- 2. CARICAMENTO DATI (FIX AVANZATO) ---
 @st.cache_data
 def load_data():
     url = "https://raw.githubusercontent.com/owid/co2-data/master/owid-co2-data.csv"
@@ -21,26 +20,28 @@ def load_data():
     keep_cols = ['country', 'year', 'iso_code', 'population', 'gdp', 'co2_per_capita', 'co2']
     df = df[keep_cols]
     
-    # Pulizia base (Rimuoviamo continenti e aggregati)
+    # Pulizia base
     df = df[df['iso_code'].notna()]
     
-    # --- IL TRUCCO PER I DATI MANCANTI (FORWARD FILL) ---
+    # --- FIX CRITICO PER GDP MANCANTE (2023/2024) ---
     # Ordiniamo per paese e anno
     df = df.sort_values(['country', 'year'])
     
-    # Questa è la parte magica:
-    # "Se il GDP del 2024 è vuoto, copiami dentro il valore del 2022 o 2023"
+    # "Forward Fill": Se manca il GDP nel 2024, copiamo quello del 2023.
+    # Questo permette al grafico a bolle di funzionare anche per gli anni recenti.
     df['gdp'] = df.groupby('country')['gdp'].ffill()
     df['population'] = df.groupby('country')['population'].ffill()
     
-    # Ora rimuoviamo le righe SOLO se manca la CO2 (che è il dato principale)
-    # Non ci preoccupiamo più se manca il GDP originale, perché lo abbiamo riempito noi.
+    # Rimuoviamo righe solo se manca la CO2 (il dato fondamentale)
     df = df.dropna(subset=['co2_per_capita'])
     
-    # Filtro Micro-stati (popolazione > 1 milione)
+    # Filtro Micro-stati (popolazione > 1 milione) per pulire la mappa
     df = df[df['population'] > 1000000]
     
     return df
+
+# --- QUESTA È LA RIGA CHE MANCAVA E CAUSAVA L'ERRORE ---
+df = load_data()
 
 # --- 3. SIDEBAR ---
 with st.sidebar:
@@ -49,6 +50,7 @@ with st.sidebar:
     # A. Filtro Anno
     st.subheader("1. Time Dimension")
     min_year = 1950
+    # Ora df è definito, quindi questa riga funzionerà!
     max_year = int(df['year'].max())
     
     selected_year = st.slider(
@@ -138,7 +140,8 @@ if not df_year.empty:
 
     # --- TAB SYSTEM ---
     tab1, tab2, tab3 = st.tabs(["🗺️ Global Map & Analysis", "📈 Historical Trends", "💰 GDP vs CO₂ (Finance Insight)"])
-# TAB 1: MAPPA + SPIEGAZIONE PERSONALIZZATA
+
+    # TAB 1: MAPPA + SPIEGAZIONE PERSONALIZZATA
     with tab1:
         # 1. MAPPA
         fig_map = px.choropleth(
@@ -172,18 +175,16 @@ if not df_year.empty:
         
         st.plotly_chart(fig_map, use_container_width=True)
         
-        # 2. SEZIONE SPIEGAZIONE PERSONALIZZATA (NUOVA LOGICA)
+        # 2. SEZIONE SPIEGAZIONE PERSONALIZZATA
         st.markdown("---")
         st.subheader(f"🔍 Deep Dive: Why is {top_country_name} ranked #1?")
         
-        # Dati per la formula matematica
+        # Dati per la formula
         total_co2_val = top_country_row['co2'] 
         pop_val = top_country_row['population']
         per_capita_val = top_country_row['co2_per_capita']
 
-        # --- DIZIONARIO DEGLI INSIGHT (Qui avviene la magia) ---
-        # Scriviamo curiosità specifiche per ogni "vincitore" frequente
-        
+        # Dizionario Insight
         custom_insights = {
             "Qatar": {
                 "icon": "⚡",
@@ -241,17 +242,12 @@ if not df_year.empty:
             }
         }
 
-        # --- LOGICA DI SELEZIONE ---
-        # Se il paese è nel nostro dizionario, usiamo il testo personalizzato.
-        # Altrimenti, usiamo un testo generico "smart".
-        
         if top_country_name in custom_insights:
             insight = custom_insights[top_country_name]
             final_icon = insight["icon"]
             final_title = insight["title"]
             final_text = insight["text"]
         else:
-            # Fallback generico intelligente
             final_icon = "📊"
             final_title = "High Industrial Output / Small Population"
             final_text = f"""
@@ -260,14 +256,11 @@ if not df_year.empty:
             **Statistical Effect:** When a country has a small denominator (population), even moderate industrial emissions result in a very high per-capita ranking.
             """
 
-        # VISUALIZZAZIONE
         with st.expander(f"📖 Read Analysis for {top_country_name}", expanded=True):
             col_a, col_b = st.columns([2, 1])
-            
             with col_a:
                 st.markdown(f"### {final_icon} {final_title}")
                 st.markdown(final_text)
-                
             with col_b:
                 st.markdown("#### 🧮 The Evidence (Math)")
                 st.markdown(f"""
@@ -307,8 +300,14 @@ if not df_year.empty:
         The size of each bubble represents the country's population.
         """)
         
+        # Qui ora usiamo il DataFrame che ha già i dati GDP "riempiti" (ffill)
         df_year_fin = df_year.copy()
+        
+        # Calcoliamo il GDP pro capite
+        # Poiché gdp e population sono stati 'puliti' nel caricamento, non avremo buchi
         df_year_fin['gdp_per_capita'] = df_year_fin['gdp'] / df_year_fin['population']
+        
+        # Pulizia finale di sicurezza
         df_year_fin = df_year_fin.dropna(subset=['gdp_per_capita', 'co2_per_capita', 'population'])
 
         if not df_year_fin.empty:
@@ -328,7 +327,9 @@ if not df_year.empty:
             fig_scatter.update_traces(marker=dict(sizemin=5))
             fig_scatter.update_layout(height=600, showlegend=False)
             st.plotly_chart(fig_scatter, use_container_width=True)
-            st.caption("Note: X-axis is logarithmic. Bubble size represents population.")
+            
+            # Nota aggiornata
+            st.caption("Note: X-axis is logarithmic. Bubble size represents population. *Most recent available GDP data is used for the current year.*")
         else:
             st.warning(f"Not enough economic data available for the year {selected_year}.")
 
