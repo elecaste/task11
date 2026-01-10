@@ -78,26 +78,35 @@ df_year = df[df['year'] == selected_year]
 
 if not df_year.empty:
     
-    # KPI
-    col1, col2, col3, col4 = st.columns(4)
+   # --- KPI SECTION (Top 5 - Finance Style) ---
+    # 1. Calcoliamo i dati PRIMA di mostrarli
     global_avg = df_year['co2_per_capita'].mean()
-    max_emitter = df_year.loc[df_year['co2_per_capita'].idxmax()] if not df_year.empty else None
+    top_5_emitters = df_year.sort_values(by="co2_per_capita", ascending=False).head(5)
+    
+    # 2. Creiamo le colonne
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric("📅 Selected Year", selected_year)
+        
     with col2:
-        st.metric("🌍 Global Avg (Per Capita)", f"{global_avg:.2f} t")
+        st.metric("🌍 Global Avg", f"{global_avg:.2f} t")
+        
     with col3:
+        # Opzione B: Tabellina finanziaria
         st.markdown("**🏭 Top 5 Ranking**")
-        # Creiamo una mini tabella pulita per la visualizzazione
+        
+        # Prepariamo i dati per la tabella
         top5_display = top_5_emitters[['country', 'co2_per_capita']].copy()
         top5_display.columns = ['Country', 'Tons']
-        # Resettiamo l'indice per farlo partire da 1
+        
+        # Facciamo partire l'indice da 1 invece che da 0
         top5_display.reset_index(drop=True, inplace=True)
         top5_display.index += 1
         
-        # Mostriamo la tabella senza indici fastidiosi
+        # Mostriamo la tabella
         st.dataframe(top5_display, height=180, use_container_width=True)
+            
     with col4:
         st.metric("👥 Tracked Population", f"{df_year['population'].sum()/1e9:.2f} B")
 
