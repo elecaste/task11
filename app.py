@@ -21,6 +21,11 @@ def load_data():
     
     df = df[df['iso_code'].notna()]
     
+    # --- FIX UNITÀ DI MISURA (FONDAMENTALE) ---
+    # Il dataset originale ha la CO2 in 'Milioni di Tonnellate'.
+    # La convertiamo in 'Tonnellate Reali' (x 1.000.000) per far funzionare i calcoli e le tabelle.
+    df['co2'] = df['co2'] * 1_000_000
+    
     # FIX GDP 2023/24 e dati mancanti
     df = df.sort_values(['country', 'year'])
     df['gdp'] = df.groupby('country')['gdp'].ffill()
@@ -107,8 +112,12 @@ if not df_year.empty:
     with col3:
         st.metric("👤 Top Per Capita", top_per_capita['country'], f"{top_per_capita['co2_per_capita']:.1f} t")
     with col4:
+        # Formattazione KPI Assoluto
         abs_val = top_absolute['co2']
-        abs_str = f"{abs_val/1e9:.2f} B tons" if abs_val > 1e9 else f"{abs_val/1e6:.0f} M tons"
+        if abs_val > 1e9:
+            abs_str = f"{abs_val/1e9:.2f} B tons"
+        else:
+            abs_str = f"{abs_val/1e6:.0f} M tons"
         st.metric("🏭 Top Absolute", top_absolute['country'], abs_str)
     with col5:
         st.metric("👥 Population", f"{df_year['population'].sum()/1e9:.2f} B")
@@ -258,13 +267,12 @@ if not df_year.empty:
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
         st.plotly_chart(fig_abs, use_container_width=True)
 
-        # --- LISTA TOP 5 SOTTO LA MAPPA (TAB 2 - AGGIUNTA) ---
+        # --- LISTA TOP 5 SOTTO LA MAPPA (TAB 2) ---
         st.markdown("#### 🏆 Top 5 Countries (Total Volume)")
         
-        # Creiamo la classifica dei primi 5 per volume totale
         top5_abs = df_year.sort_values(by="co2", ascending=False).head(5)[['country', 'co2']].copy()
         
-        # Formattazione per rendere leggibili i miliardi
+        # ORA FUNZIONERÀ: I numeri sono grandi (Reali) quindi 11 Miliardi > 1e9 = TRUE
         top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} Billion" if x > 1e9 else f"{x/1e6:.0f} Million")
         
         top5_abs.columns = ['Country', 'Total Emissions']
