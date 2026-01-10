@@ -151,7 +151,7 @@ if not df_year.empty:
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         st.plotly_chart(fig_map, use_container_width=True)
 
-        # --- LISTA TOP 5 QUI SOTTO (TAB 1) ---
+        # --- LISTA TOP 5 SOTTO LA MAPPA (TAB 1) ---
         st.markdown("#### 🏆 Top 5 Countries (Per Capita)")
         top5_pc = df_year.sort_values(by="co2_per_capita", ascending=False).head(5)[['country', 'co2_per_capita']].copy()
         top5_pc.columns = ['Country', 'Tons per Person']
@@ -172,7 +172,7 @@ if not df_year.empty:
             "Qatar": {
                 "icon": "⚡", "title": "The LNG Superpower",
                 "text": """
-                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C for export is incredibly energy-intensive.
+                **Specific Driver:** Qatar is the world's leading exporter of **Liquefied Natural Gas (LNG)**. The process of cooling gas to -162°C is incredibly energy-intensive.
                 
                 **Lifestyle Factor:** Extremely subsidized electricity and water lead to some of the highest domestic consumption rates in the world (air conditioning and water desalination).
                 """
@@ -196,10 +196,7 @@ if not df_year.empty:
             "Bahrain": {
                 "icon": "🏭", "title": "Aluminum Smelting Giant",
                 "text": """
-                **Specific Driver:** Bahrain is home to **Alba**, one of the largest aluminum smelters in the world. Aluminum production is effectively "solid electricity" because it requires massive amounts of power.
-                
-                **Impact:** This single industry accounts for a huge percentage of the small island's national footprint.
-                """
+                **Specific Driver:** Bahrain is home to **Alba**, one of the largest aluminum smelters in the world. Aluminum production acts as "solid electricity" export."""
             },
             "United States": {
                 "icon": "🚗", "title": "The Age of Suburban Sprawl",
@@ -230,11 +227,7 @@ if not df_year.empty:
             with c2:
                 st.markdown("#### 🧮 The Evidence (Math)")
                 st.markdown(f"How we get **{tp_val:.1f} tons**:")
-                st.markdown(f"""
-                $$
-                \\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}
-                $$
-                """)
+                st.markdown(f"$$\\frac{{{tp_co2:,.0f} \\text{{ Total Tons}}}}{{{tp_pop:,.0f} \\text{{ People}}}} = \\mathbf{{{tp_val:.1f}}}$$")
                 st.markdown("*A small population (Denominator) amplifies the result.*")
 
     # ==========================
@@ -265,12 +258,15 @@ if not df_year.empty:
         fig_abs.update_coloraxes(colorbar_title="Total Tonnes")
         st.plotly_chart(fig_abs, use_container_width=True)
 
-        # --- LISTA TOP 5 QUI SOTTO (TAB 2) ---
+        # --- LISTA TOP 5 SOTTO LA MAPPA (TAB 2 - AGGIUNTA) ---
         st.markdown("#### 🏆 Top 5 Countries (Total Volume)")
+        
+        # Creiamo la classifica dei primi 5 per volume totale
         top5_abs = df_year.sort_values(by="co2", ascending=False).head(5)[['country', 'co2']].copy()
         
-        # Formattazione Numeri Grandi
-        top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} B" if x > 1e9 else f"{x/1e6:.0f} M")
+        # Formattazione per rendere leggibili i miliardi
+        top5_abs['co2'] = top5_abs['co2'].apply(lambda x: f"{x/1e9:.2f} Billion" if x > 1e9 else f"{x/1e6:.0f} Million")
+        
         top5_abs.columns = ['Country', 'Total Emissions']
         top5_abs.reset_index(drop=True, inplace=True)
         top5_abs.index += 1
