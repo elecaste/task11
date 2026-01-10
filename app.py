@@ -32,7 +32,7 @@ df = load_data()
 with st.sidebar:
     st.title("📊 Control Panel")
     
-    # Filtro Anno
+    # A. Filtro Anno
     st.subheader("1. Time Dimension")
     min_year = 1950
     max_year = int(df['year'].max())
@@ -46,11 +46,23 @@ with st.sidebar:
     
     st.markdown("---")
 
-    # Filtro Paesi
-    st.subheader("2. Comparative Analysis")
+    # B. Ricerca e Zoom (NUOVO AGGIUNTO QUI)
+    st.subheader("🔍 Find a Country")
     all_countries = sorted(df['country'].unique())
+    # Aggiungiamo l'opzione per vedere tutto il mondo
+    search_list = ["All Countries (Global View)"] + all_countries
+    
+    country_zoom = st.selectbox(
+        "Search and Zoom to:",
+        search_list,
+        help="Select a country to automatically zoom the map on it."
+    )
+
+    st.markdown("---")
+
+    # C. Filtro Paesi per Grafico Trends
+    st.subheader("2. Comparative Analysis")
     default_countries = ["United States", "China", "United Kingdom", "Italy", "India"]
-    # Verifica che i default esistano
     valid_defaults = [c for c in default_countries if c in all_countries]
     
     selected_countries = st.multiselect(
@@ -61,7 +73,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Informazioni
+    # D. Informazioni
     st.info("ℹ️ **About**")
     st.markdown("""
     **Data Source:** [Our World in Data](https://ourworldindata.org/co2-and-greenhouse-gas-emissions)
@@ -78,13 +90,11 @@ df_year = df[df['year'] == selected_year]
 
 if not df_year.empty:
     
-   # --- KPI SECTION (Top 5 - Finance Style) ---
-    # 1. Calcoliamo i dati PRIMA di mostrarli
+    # --- KPI SECTION (Top 5 - Finance Style) ---
+    col1, col2, col3, col4 = st.columns(4)
+    
     global_avg = df_year['co2_per_capita'].mean()
     top_5_emitters = df_year.sort_values(by="co2_per_capita", ascending=False).head(5)
-    
-    # 2. Creiamo le colonne
-    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric("📅 Selected Year", selected_year)
@@ -93,18 +103,11 @@ if not df_year.empty:
         st.metric("🌍 Global Avg", f"{global_avg:.2f} t")
         
     with col3:
-        # Opzione B: Tabellina finanziaria
         st.markdown("**🏭 Top 5 Ranking**")
-        
-        # Prepariamo i dati per la tabella
         top5_display = top_5_emitters[['country', 'co2_per_capita']].copy()
         top5_display.columns = ['Country', 'Tons']
-        
-        # Facciamo partire l'indice da 1 invece che da 0
         top5_display.reset_index(drop=True, inplace=True)
         top5_display.index += 1
-        
-        # Mostriamo la tabella
         st.dataframe(top5_display, height=180, use_container_width=True)
             
     with col4:
@@ -115,35 +118,48 @@ if not df_year.empty:
     # --- TAB SYSTEM ---
     tab1, tab2, tab3 = st.tabs(["🗺️ Global Map", "📈 Historical Trends", "💰 GDP vs CO₂ (Finance Insight)"])
 
-    # TAB 1: MAPPA (Colori Corretti per evidenziare il Qatar)
-    # TAB 1: MAPPA (Colori Professionali e Qatar Evidente)
+    # TAB 1: MAPPA CON ZOOM DINAMICO (AGGIORNATO)
     with tab1:
-        fig_map = px.choropleth(
-            df_year,
-            locations="iso_code",
-            color="co2_per_capita",
-            hover_name="country",
-            hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
+        # Logica per decidere se mostrare il mondo o zoomare
+        if country_zoom != "All Countries (Global View)":
+            # MODALITÀ FOCUS: Filtriamo solo il paese scelto
+            df_map = df_year[df_year['country'] == country_zoom]
+            title_text = f"<b>Focus on: {country_zoom} ({selected_year})</b>"
+            # fitbounds="locations" fa lo zoom automatico
+            geo_scope = dict(fitbounds="locations", visible=True) 
+        else:
+            # MODALITÀ MONDO: Mostriamo tutto
+            df_map = df_year
+            title_text = f"<b>Global CO₂ Intensity ({selected_year})</b>"
+            geo_scope = dict(showframe=False, projection_type="natural earth", showocean=True, oceancolor="#f0f8ff")
+
+        if not df_map.empty:
+            fig_map = px.choropleth(
+                df_map,
+                locations="iso_code",
+                color="co2_per_capita",
+                hover_name="country",
+                hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
+                
+                # Scala colori YlOrRd e range 0-40 (come richiesto)
+                color_continuous_scale="YlOrRd", 
+                range_color=(0, 40),
+                
+                title=title_text,
+            )
             
-            # --- MODIFICA COLORE: "YlOrRd" (Yellow-Orange-Red) ---
-            # È la scala standard per le heatmaps: elegante e intuitiva.
-            color_continuous_scale="YlOrRd", 
+            # Applichiamo lo zoom o la vista globale
+            fig_map.update_geos(**geo_scope)
             
-            # --- MODIFICA RANGE: Fissato a 40 ---
-            # Qatar (40+) sarà Rosso Scuro/Bordeaux.
-            # USA (14) saranno Arancione Chiaro.
-            # Europa (6-8) sarà Giallo scuro.
-            # Questo contrasto rende il Qatar immediatamente visibile.
-            range_color=(0, 40),
+            fig_map.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
+            fig_map.update_coloraxes(colorbar_title="Tons/Person")
             
-            title=f"<b>Global CO₂ Intensity ({selected_year})</b>",
-        )
-        
-        fig_map.update_geos(showframe=False, projection_type="natural earth", showocean=True, oceancolor="#f0f8ff")
-        fig_map.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
-        fig_map.update_coloraxes(colorbar_title="Tons/Person")
-        
-        st.plotly_chart(fig_map, use_container_width=True)
+            st.plotly_chart(fig_map, use_container_width=True)
+            
+            if country_zoom != "All Countries (Global View)":
+                 st.info("💡 To return to the world map, select **'All Countries (Global View)'** in the sidebar search box.")
+        else:
+            st.warning(f"No data available for {country_zoom} in {selected_year}.")
 
     # TAB 2: LINE CHART
     with tab2:
@@ -164,7 +180,7 @@ if not df_year.empty:
         else:
             st.warning("Select countries in the sidebar to visualize trends.")
 
-    # TAB 3: SCATTER PLOT (VERSIONE STABILE CORRETTA)
+    # TAB 3: SCATTER PLOT
     with tab3:
         st.subheader("Economic Growth vs. Environmental Impact")
         st.markdown("""
@@ -172,7 +188,6 @@ if not df_year.empty:
         The size of each bubble represents the country's population.
         """)
         
-        # Calcolo GDP e pulizia
         df_year_fin = df_year.copy()
         df_year_fin['gdp_per_capita'] = df_year_fin['gdp'] / df_year_fin['population']
         df_year_fin = df_year_fin.dropna(subset=['gdp_per_capita', 'co2_per_capita', 'population'])
@@ -188,12 +203,10 @@ if not df_year.empty:
                 log_x=True,             
                 title=f"<b>Correlation: GDP per Capita vs CO₂ ({selected_year})</b>",
                 labels={'gdp_per_capita': 'GDP per Capita ($)', 'co2_per_capita': 'CO₂ per Capita (t)'},
-                size_max=60  # Dimensione massima corretta
+                size_max=60 
             )
             
-            # Impostiamo dimensione minima per non perdere i paesi piccoli
             fig_scatter.update_traces(marker=dict(sizemin=5))
-
             fig_scatter.update_layout(height=600, showlegend=False)
             st.plotly_chart(fig_scatter, use_container_width=True)
             st.caption("Note: X-axis is logarithmic. Bubble size represents population.")
