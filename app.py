@@ -116,6 +116,7 @@ if not df_year.empty:
     tab1, tab2, tab3 = st.tabs(["🗺️ Global Map", "📈 Historical Trends", "💰 GDP vs CO₂ (Finance Insight)"])
 
     # TAB 1: MAPPA (Colori Corretti per evidenziare il Qatar)
+    # TAB 1: MAPPA (Colori Professionali e Qatar Evidente)
     with tab1:
         fig_map = px.choropleth(
             df_year,
@@ -124,23 +125,22 @@ if not df_year.empty:
             hover_name="country",
             hover_data={'iso_code': False, 'population': ':,.0f', 'gdp': ':,.0f'},
             
-            # --- MODIFICA 1: Scala colori più aggressiva ---
-            # "Turbo" è una scala arcobaleno che evidenzia benissimo gli estremi. 
-            # Se preferisci il rosso classico usa "YlOrRd" (Giallo-Arancio-Rosso)
-            color_continuous_scale="Turbo", 
+            # --- MODIFICA COLORE: "YlOrRd" (Yellow-Orange-Red) ---
+            # È la scala standard per le heatmaps: elegante e intuitiva.
+            color_continuous_scale="YlOrRd", 
             
-            # --- MODIFICA 2: Aumentiamo il range a 45 ---
-            # In questo modo il Qatar (41 t) sarà in cima alla scala, 
-            # mentre USA (14 t) saranno a un terzo (colore diverso).
-            range_color=(0, 45),
+            # --- MODIFICA RANGE: Fissato a 40 ---
+            # Qatar (40+) sarà Rosso Scuro/Bordeaux.
+            # USA (14) saranno Arancione Chiaro.
+            # Europa (6-8) sarà Giallo scuro.
+            # Questo contrasto rende il Qatar immediatamente visibile.
+            range_color=(0, 40),
             
             title=f"<b>Global CO₂ Intensity ({selected_year})</b>",
         )
         
         fig_map.update_geos(showframe=False, projection_type="natural earth", showocean=True, oceancolor="#f0f8ff")
         fig_map.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
-        
-        # Aggiungiamo titolo alla barra laterale dei colori
         fig_map.update_coloraxes(colorbar_title="Tons/Person")
         
         st.plotly_chart(fig_map, use_container_width=True)
